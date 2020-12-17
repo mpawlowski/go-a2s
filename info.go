@@ -1,6 +1,9 @@
 package a2s
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	A2S_INFO_HEADER = 0x49 // Source & up
@@ -109,12 +112,14 @@ func (c *Client) QueryInfo() (*ServerInfo, error) {
 	builder.WriteCString("Source Engine Query")
 
 	if err := c.send(builder.Bytes()); err != nil {
+		fmt.Println(1, err)
 		return nil, err
 	}
 
 	data, err := c.receive()
 
 	if err != nil {
+		fmt.Println(2, err)
 		return nil, err
 	}
 
@@ -126,12 +131,14 @@ func (c *Client) QueryInfo() (*ServerInfo, error) {
 	reader := NewPacketReader(data)
 
 	if reader.ReadInt32() != -1 {
+		fmt.Println(3, err)
 		return nil, ErrBadPacketHeader
 	}
 
 	info := &ServerInfo{}
 
 	if reader.ReadUint8() != A2S_INFO_HEADER {
+		fmt.Println(4, err)
 		return nil, ErrUnsupportedHeader
 	}
 
@@ -169,6 +176,7 @@ func (c *Client) QueryInfo() (*ServerInfo, error) {
 	// Start of EDF
 
 	if !reader.More() {
+		fmt.Println(5, err)
 		return info, nil
 	}
 
