@@ -6,7 +6,8 @@ import (
 )
 
 const (
-	A2S_INFO_HEADER = 0x49 // Source & up
+	A2S_INFO_REQUEST  = 0x54
+	A2S_INFO_RESPONSE = 0x49 // Source & up
 )
 
 var (
@@ -106,21 +107,28 @@ func (c *Client) QueryInfo() (*ServerInfo, error) {
 
 	*/
 	builder.WriteBytes([]byte{
-		0xff, 0xff, 0xff, 0xff, 0x54,
+		0xFF, 0xFF, 0xFF, 0xFF, A2S_INFO_REQUEST,
 	})
 
 	builder.WriteCString("Source Engine Query")
 
-	if err := c.send(builder.Bytes()); err != nil {
-		fmt.Println(1, err)
+	data, immediate, err := c.getChallenge(builder.Bytes(), A2S_INFO_RESPONSE)
+
+	if err != nil {
 		return nil, err
 	}
 
-	data, err := c.receive()
+	if !immediate {
+		builder.WriteBytes(data)
+		if err := c.send(builder.Bytes()); err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		fmt.Println(2, err)
-		return nil, err
+		data, err = c.receive()
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	/*
@@ -137,8 +145,9 @@ func (c *Client) QueryInfo() (*ServerInfo, error) {
 
 	info := &ServerInfo{}
 
-	if reader.ReadUint8() != A2S_INFO_HEADER {
-		fmt.Println(4, err)
+	header := reader.ReadUint8()
+	if header != A2S_INFO_RESPONSE {
+		fmt.Println(4, header)
 		return nil, ErrUnsupportedHeader
 	}
 
